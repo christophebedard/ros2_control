@@ -23,6 +23,7 @@
 #include "controller_interface/controller_interface.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "tracetools/tracetools.h"
 
 namespace controller_manager
 {
@@ -627,6 +628,10 @@ ControllerManager::add_controller_impl(
   }
   executor_->add_node(controller.c->get_node());
   to.emplace_back(controller);
+  TRACEPOINT(
+    control_controller_init,
+    static_cast<const void *>(controller.c.get()),
+    controller.info.name.c_str());
 
   // Destroys the old controllers list when the realtime thread is finished with it.
   RCLCPP_DEBUG(get_logger(), "Realtime switches over to new controller list");
@@ -1124,6 +1129,7 @@ controller_interface::return_type ControllerManager::update()
     // https://github.com/ros-controls/ros2_control/issues/153
     if (is_controller_running(*loaded_controller.c)) {
       auto controller_ret = loaded_controller.c->update();
+      TRACEPOINT(control_controller_update, static_cast<const void *>(loaded_controller.c.get()));
       if (controller_ret != controller_interface::return_type::OK) {
         ret = controller_ret;
       }
